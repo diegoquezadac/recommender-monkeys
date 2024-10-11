@@ -15,3 +15,7 @@
 - **notebooks**: This folder is exclusively for notebooks used in the development and analysis process.
 
 - **scripts**: This folder contains general-purpose scripts such as those for plotting and data handling.
+
+## Dataset
+
+The dataset can be found [here](https://www.dropbox.com/scl/fi/x9avfdx2a1k6uq97f0efj/LLM-ReDial-2024.zip?rlkey=ijqpf91d13d6lowek3ebjvd0n&e=1&dl=0l).
