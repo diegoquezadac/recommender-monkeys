@@ -47,3 +47,6 @@ tqdm==4.66.5
 traitlets==5.14.3
 urllib3==2.2.3
 wcwidth==0.2.13
+python-dotenv==1.0.1
+langchain==0.3.3
+langchain-openai==0.2.2
