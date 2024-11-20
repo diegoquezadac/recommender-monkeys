@@ -173,15 +173,6 @@ TODO
 ... Explicar cómo se usa LoRa
 
 ---
-# Evaluación
-
-<div style="display: flex; justify-content: space-around; margin-top: 20px;">
-  
-  <img src="./images/results.png" alt="Interacciones por usuario (Prueba)" style="width: 75%; height: auto;"/>
-
-</div>
-
----
 
 ## Inferencia
 
@@ -193,9 +184,24 @@ $$
 
 En donde $\hat{\Phi}$ denota los parámetros del LLM y $\Phi'$ los del módulo LoRA.
 
+
 ---
 
+# Evaluación
+
+<div style="display: flex; justify-content: space-around; margin-top: 20px;">
+  
+  <img src="./images/results.png" alt="Interacciones por usuario (Prueba)" style="width: 75%; height: auto;"/>
+
+</div>
+
+---
 # Experimentos
+
+
+---
+# Conclusiones
+
 
 ---
 # Referencias
