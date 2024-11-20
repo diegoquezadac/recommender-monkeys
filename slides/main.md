@@ -191,7 +191,11 @@ Se realiza de la siguiente manera:
 
 El método **Low-Rank Adaptation (LoRA)** adapta eficientemente los pesos de las capas densas de un modelo pre-entrenado, manteniendo los pesos originales congelados. Esto se hace optimizando matrices de baja dimensión que modelan los cambios durante la adaptación.
 
-![Diagrama LoRA](lora_image.png)
+<div style="display: flex; justify-content: space-around; margin-top: 20px;">
+  
+  <img src="./images/lora_image.png" alt="LoRA diagram" style="width: 75%; height: auto;"/>
+
+</div>
 
 ---
 
