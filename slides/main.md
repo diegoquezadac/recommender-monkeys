@@ -278,7 +278,7 @@ Los datos de prueba se dividen en "warm" o "cold" en base al número de interacc
 
 **BinMF**: Solo las representaciones binarias y MF
 **BinLLM-TO**: Solo los textos en el prompt
-**BinLLM-ID**: Solo los ids en el prompt
+**BinLLM-IO**: Solo los ids en el prompt
 **BinLLM-IT**: Intuitive tuning (IT)
 
 
