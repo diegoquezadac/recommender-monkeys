@@ -155,8 +155,8 @@ En donde:
 * LLM: Vicuna-7B
 * Largo representación binaria: 32
 * Métrica de evaluación: AUC
-* Función de activación $\sigma$: Tanh
-* FUnción de pérdida: Binary cross-entropy
+* Función de activación: Tanh
+* Función de pérdida: Binary cross-entropy
 
 ---
 
@@ -184,16 +184,60 @@ En donde $\hat{\Phi}$ denota los parámetros del LLM y $\Phi'$ los del módulo L
 
 <div style="display: flex; justify-content: space-around; margin-top: 20px;">
   
-  <img src="./images/results.png" alt="Interacciones por usuario (Prueba)" style="width: 75%; height: auto;"/>
+  <img src="./images/overall-performance.png" alt="Overall performance" style="width: 75%; height: auto;"/>
 
 </div>
 
 ---
 # Experimentos
 
+## Rendimiento en warm / cold
+
+![bg right width:500px](./images/warm-cold.png)
+
+Los datos de prueba se dividen en "warm" o "cold" en base al número de interacciones. 
+
+
+---
+
+## La influencia de los componentes
+
+
+![bg right width:600px](./images/benefits.png)
+
+
+**BinMF**: Solo las representaciones binarias y MF
+**BinLLM-TO**: Solo los textos en el prompt
+**BinLLM-ID**: Solo los ids en el prompt
+**BinLLM-IT**: Intuitive tuning (IT)
+
+
+---
+
+## La influencia de comprimir
+
+![bg right height:270px](./images/compression.png)
+
+Una limitación de las secuencias binarias es su largo.
+
+Los autores evaluan el efecto de comprimirlas, convirtiendo cada ocho dígitos binarios en un número decima y utilizando el punto como carácter de separación.
+
 
 ---
 # Conclusiones
+
+* BinLLM obtiene el mejor rendimiento en general, excepto al compararlo con CoLLM-DIN y evaluarlo con UAUC en el conjunto de datos de Amazon.
+
+
+---
+
+Respecto a los experimentos:
+
+
+* Métodos LLMRec son adecuados para superar el problema de cold-start.
+* BinMF es inferior a todas las variantes de BinLLM con información colaborativa, confirmando la superioridad de los LLMs.
+* BinLLM-TO es inferior a otras variantes de BinLLM, mostrando la importancia de la información colaborativa.
+* BinLLM-IO rinde peor que BinLLM-IT y BinLLM por defecto, resaltando la necesidad de considerar ambos tipos de información.
 
 
 ---
