@@ -296,19 +296,10 @@ Los autores evaluan el efecto de comprimirlas, convirtiendo cada ocho dígitos b
 ---
 # Conclusiones
 
-* BinLLM obtiene el mejor rendimiento en general, excepto al compararlo con CoLLM-DIN y evaluarlo con UAUC en el conjunto de datos de Amazon.
-
-
----
-
-Respecto a los experimentos:
-
-
-* Métodos LLMRec son adecuados para superar el problema de cold-start.
-* BinMF es inferior a todas las variantes de BinLLM con información colaborativa, confirmando la superioridad de los LLMs.
-* BinLLM-TO es inferior a otras variantes de BinLLM, mostrando la importancia de la información colaborativa.
-* BinLLM-IO rinde peor que BinLLM-IT y BinLLM por defecto, resaltando la necesidad de considerar ambos tipos de información.
-
+* BinLLM es un método robusto para la tarea de predicción de click
+* Dada una matriz de interacción "cold", los métodos LLMRec son los más adecuados
+* BinLLM aprovecha tanto la información semántica como la colaborativa para destacarse sobre los otros métodos
+* La compresión puede reducir el largo de la secuencia binaria manteniendo en gran medida el desempeño de BinLLM
 
 ---
 # Referencias
@@ -328,3 +319,9 @@ Respecto a los experimentos:
 7. Savelka, J., Agarwal, A., An, M., Bogart, C., & Sakr, M. (2023). *Thrilled by Your Progress! Large Language Models (GPT-4) No Longer Struggle to Pass Assessments in Higher Education Programming Courses*. Proceedings of the 2023 ACM Conference on International Computing Education Research V.1. ACM. http://dx.doi.org/10.1145/3568813.3600142  
 
 8. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., & Polosukhin, I. (2017). *Attention Is All You Need*. CoRR, abs/1706.03762. http://arxiv.org/abs/1706.03762
+
+
+---
+
+# Anexos
+
