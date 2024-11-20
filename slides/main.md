@@ -58,7 +58,6 @@ Nicolás Javier Espinoza Silva
 * LLMRec: Área que estudia la aplicación y adaptación de LLMs para que sean utilizados por sistemas recomendadores
 
 ---
-# Marco teórico
 
 * Tokens: Unidades en las que LLMs descomponen cadenas de texto, pueden ser palabras, caracteres, signos de puntuación o combinaciones de estas
 
