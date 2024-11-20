@@ -50,12 +50,19 @@ Nicolás Javier Espinoza Silva
 ---
 # Marco teórico
 
-TODO
 
-* LLM
-* RecSys
-* LLMRec
+* LLM: Modelos de Deep Learning basados en la arquitectura *transformer* (Vaswani et al., 2017) la cual les permite extraer información semántica de secuencias de palabras
 
+* RecSys: Algoritmos que dado un usuario y una lista de ítems recomiendan uno o varios ítems que idealmente sean de preferencia para el usuario
+
+* LLMRec: Área que estudia la aplicación y adaptación de LLMs para que sean utilizados por sistemas recomendadores
+
+---
+# Marco teórico
+
+* Tokens: Unidades en las que LLMs descomponen cadenas de texto, pueden ser palabras, caracteres, signos de puntuación o combinaciones de estas
+
+* Embeddings: Vectores de números reales que representan palabras, imágenes u otras formas de información de manera que puedan ser procesadas por modelos de Machine Learning de manera eficaz
 ---
 # Problema
 
@@ -206,3 +213,5 @@ En donde $\hat{\Phi}$ denota los parámetros del LLM y $\Phi'$ los del módulo L
 6. Tan, Q., Liu, N., Zhao, X., Yang, H., Zhou, J., & Hu, X. (2020). *Learning to Hash with Graph Neural Networks for Recommender Systems*. arXiv. https://arxiv.org/abs/2003.01917  
 
 7. Savelka, J., Agarwal, A., An, M., Bogart, C., & Sakr, M. (2023). *Thrilled by Your Progress! Large Language Models (GPT-4) No Longer Struggle to Pass Assessments in Higher Education Programming Courses*. Proceedings of the 2023 ACM Conference on International Computing Education Research V.1. ACM. http://dx.doi.org/10.1145/3568813.3600142  
+
+8. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., & Polosukhin, I. (2017). Attention Is All You Need. CoRR, abs/1706.03762. http://arxiv.org/abs/1706.03762
