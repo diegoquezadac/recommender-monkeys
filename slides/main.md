@@ -183,6 +183,8 @@ Se realiza de la siguiente manera:
 2. **Binarización**: Los vectores se convierten en secuencias binarias mediante una capa completamente conectada y la función de activación `sign`:
    $$h_u = \text{sign}(\sigma(W e_u + b))$$
 
+---
+
 3. **Optimización**: Se minimiza una loss function definida como binary cross-entropy para ajustar las predicciones con los datos de entrenamiento. Para superar la falta de derivada de la función `sign`, se usa el Straight-Through Estimator (STE) para aproximar gradientes. El STE consiste en no derivar aquellas funciones que no tengan una derivada definida en todo el espacio.
 
 ---
@@ -202,16 +204,21 @@ En LoRA, se realiza una adaptación de los pesos de capas densas mediante dos ma
 ### Componentes del Diagrama
 1. **Pesos pre-entrenados (\(W \in \mathbb{R}^{d \times d}\))**:
    - Son los pesos originales del modelo pre-entrenado, que se mantienen **congelados** durante el proceso de ajuste.
-   
+
+---
+
 2. **Matriz \(A\)**:
    - Representa un cambio proyectado hacia una dimensionalidad baja.
    - Se inicializa con una distribución normal \(A \sim \mathcal{N}(0, \sigma^2)\) porque esto facilita una exploración más eficiente del espacio de soluciones en las primeras etapas del entrenamiento.
    - Es entrenable.
 
+
 3. **Matriz \(B\)**:
    - Proyecta de vuelta al espacio de alta dimensionalidad.
    - Se inicializa como cero (\(B = 0\)) para que, al inicio del entrenamiento, los cambios sean mínimos y no afecten los pesos originales \(W\).
    - También es entrenable.
+
+---
 
 4. **Combinación de \(A\) y \(B\)**:
    - Las matrices \(A\) y \(B\) juntas permiten capturar los cambios requeridos en los pesos del modelo sin modificar los pesos pre-entrenados \(W\). El cambio total se calcula como:
@@ -228,7 +235,9 @@ En LoRA, se realiza una adaptación de los pesos de capas densas mediante dos ma
 ### Métodos
 1. **Intuitive Tuning**:
    - Ajusta directamente las matrices de baja dimensión utilizando prompts enriquecidos con información colaborativa binarizada.
-   
+
+---
+
 2. **Two-Step Tuning**:
    - **Paso 1**: Entrenamiento inicial con prompts que excluyen la información colaborativa.
    - **Paso 2**: Mayor ajuste con prompts completos que incluyen información colaborativa.
