@@ -2,7 +2,7 @@
 marp: true
 theme: default
 paginate: true
-footer: 6 de Noviembre, 2024
+footer: 19 de Noviembre, 2024
 math: katex
 ---
 
@@ -156,6 +156,7 @@ En donde:
 * Largo representación binaria: 32
 * Métrica de evaluación: AUC
 * Función de activación $\sigma$: Tanh
+* FUnción de pérdida: Binary cross-entropy
 
 ---
 
