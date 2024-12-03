@@ -2,15 +2,11 @@ import numpy as np
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from typing import Annotated, Sequence, Optional
-from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
 from langchain.tools.retriever import create_retriever_tool
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
@@ -28,13 +24,15 @@ from typing import Annotated, Sequence
 from typing_extensions import TypedDict
 
 from langchain_openai import ChatOpenAI
-
+from langgraph.graph import MessagesState
 
 import functools
 
 from langchain_core.messages import AIMessage
 from langgraph.prebuilt import ToolNode
 from IPython.display import Image, display
+
+from langgraph.prebuilt import create_react_agent
 
 
 def plot_graph(graph):
@@ -79,9 +77,9 @@ async def recommend_zero_shot(
         )
 
     system = """
-            You are a recommender system.
-            Recommend {n} items using the user's conversation.
-            Sort the items by descending order of relevance.
+            You are a conversational recommender system specialized in books.
+            Given the current conversation, recommend {n} books that align with the user's interests.
+            Sort the books by descending order of relevance.
 
             Conversation:
             {messages}
@@ -108,66 +106,34 @@ async def recommend_zero_shot(
         print(f"Cost: ${cost} USD")
         print(f"Recommended Items: {response['parsed'].items}")
 
-    recommended_items = [
-        item.strip().lower() for item in response["parsed"].items
-    ]
+    recommended_items = [item.strip().lower() for item in response["parsed"].items]
 
     return recommended_items
 
 
-async def recommend_agent(messages: List[BaseMessage], store: Any, n: int = 10):
+async def recommend_agent_2(messages: List[BaseMessage], store: Any, n: int = 10):
 
-    tavily_tool = TavilySearchResults(
-        max_results=n,
-        search_depth="advanced",
-        include_answer=False,
-        include_raw_content=False,
-        include_images=False,
-        description="Search the web for information about books.",
-    )
+    system = f"""
+        You are a recommender system specialized in books.
+        Given the current conversation, you must recommend {n} books that align with the user's interests.
+        Every time you mention a book, consider its ID also.
+        Sort the books by descending order of relevance.
+        You must not ask any questions to the user, simply return the recommendations.
+        """
+
+    llm = ChatOpenAI(model="gpt-4o")
 
     books_retriever = create_retriever_tool(
-        store.as_retriever(search_type="similarity", search_kwargs={"k": n * 2}),
+        store.as_retriever(search_type="similarity", search_kwargs={"k": 2 * n}),
         "retrieve_books",
-        "Search and return books in the database.",
+        "Search books in the database.",
     )
 
-    class AgentState(TypedDict):
-        messages: Annotated[Sequence[BaseMessage], add_messages]
-        recommended_items: Optional[List[str]] = None
-
-    async def agent(state):
-
-        messages = state["messages"]
-
-        prompt = PromptTemplate.from_template(
-            template="""
-                    You are a conversational recommender system specialized in books.
-                    Given the current conversation, recommend {n} books that align with the user's interests.
-                    Every time you mention a book, consider its ID also.
-                    Sort the items by descending order of relevance.
-
-                    Current conversation is as follows:
-                    {messages}
-                """
-        )
-
-        llm = ChatOpenAI(
-            temperature=0,
-            streaming=True,
-            model="gpt-4o",
-            model_kwargs={"stream_options": {"include_usage": True}},
-        )
-
-        tools = [books_retriever, tavily_tool]
-
-        llm = llm.bind_tools(tools)
-
-        chain = prompt | llm
-
-        response = await chain.ainvoke({"messages": messages, "n": n})
-
-        return {"messages": [response]}
+    librarian_agent = create_react_agent(
+        llm,
+        tools=[books_retriever],
+        state_modifier=system,
+    )
 
     def formatter(state):
 
@@ -176,7 +142,7 @@ async def recommend_agent(messages: List[BaseMessage], store: Any, n: int = 10):
 
         class Recommendation(BaseModel):
             items: List[str] = Field(
-                description="A list of items ids recommended by the system."
+                description="A list of items ids retrieved from the database."
             )
 
         system = """
@@ -185,7 +151,7 @@ async def recommend_agent(messages: List[BaseMessage], store: Any, n: int = 10):
 
         prompt = ChatPromptTemplate.from_messages([("system", system)])
 
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0)
         structured_llm = llm.with_structured_output(Recommendation, include_raw=True)
         formatter = prompt | structured_llm
 
@@ -193,103 +159,78 @@ async def recommend_agent(messages: List[BaseMessage], store: Any, n: int = 10):
 
         recommended_items = [item.strip().lower() for item in response["parsed"].items]
 
-        return {"recommended_items": recommended_items}
+        messages.append(AIMessage(content=recommended_items, name="formatter"))
 
-    def should_continue(state):
+        return {"messages": messages}
 
-        messages = state["messages"]
-        last_message = messages[-1]
-        if not last_message.tool_calls:
-            return "end"
-        else:
-            return "tools"
+    def librarian_node(state: MessagesState) -> MessagesState:
+        result = librarian_agent.invoke(state)
+        result["messages"][-1] = AIMessage(
+            content=result["messages"][-1].content, name="librarian"
+        )
+        return {
+            "messages": result["messages"],
+        }
 
-    workflow = StateGraph(AgentState)
-    tools = ToolNode([books_retriever, tavily_tool])
-
-    workflow.add_node("agent", RunnableLambda(agent))
-    workflow.add_node("tools", tools)
+    workflow = StateGraph(MessagesState)
     workflow.add_node("formatter", formatter)
-
-    workflow.add_edge(START, "agent")
-
-    workflow.add_conditional_edges(
-        "agent", should_continue, {"tools": "tools", "end": "formatter"}  # "end": END,
-    )
-    workflow.add_edge("tools", "agent")
-
+    workflow.add_node("librarian", librarian_node)
+    workflow.add_edge("librarian", "formatter")
     workflow.add_edge("formatter", END)
-
+    workflow.add_edge(START, "librarian")
     graph = workflow.compile()
 
     plot_graph(graph)
 
-    state = {"messages": messages, "recommended_items": None}
+    state = {"messages": messages}
 
     try:
         output = await graph.ainvoke(state)
     except Exception as e:
-        output = {"messages": None, "recommended_items": None}
+        output = {"messages": None}
 
     return output
 
 
-async def recommend_multi_agent(messages: List[BaseMessage], store: Any, n: int = 10):
+async def recommend_multi_agent_2(messages: List[BaseMessage], store: Any, n: int = 10):
 
-    class AgentState(TypedDict):
-        messages: Annotated[Sequence[BaseMessage], operator.add]
-        sender: str
-        recommended_items: Optional[List[str]] = None
+    def make_system_prompt(suffix: str) -> str:
+        return (
+        " You are a helpful AI assistant, collaborating with other assistants."
+       f" Your task is to help the team recommend {n} books to the user."
+        " Every time you mention a book, consider its ID also."
+        " Sort the final recommendation by descending order of relevance."
+        " Use the provided tools to progress towards answering the question."
+        " If you are unable to fully answer, that's OK, another assistant with different tools "
+        " will help where you left off. Execute what you can to make progress."
+        " If you or any of the other assistants have the final answer or deliverable,"
+        " prefix your response with FINAL ANSWER so the team knows to stop."
+        f"\n{suffix}"
+    )
 
-    def create_agent(llm, tools, system_message: str):
-        """Create an agent."""
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    "You are a helpful AI assistant, collaborating with other assistants."
-                    " Use the provided tools to progress towards answering the question."
-                    " If you are unable to fully answer, that's OK, another assistant with different tools "
-                    " will help where you left off. Execute what you can to make progress."
-                    " If you or any of the other assistants have the final answer or deliverable,"
-                    " prefix your response with FINAL ANSWER so the team knows to stop."
-                    " You have access to the following tools: {tool_names}.\n{system_message}",
-                ),
-                MessagesPlaceholder(variable_name="messages"),
-            ]
-        )
-        prompt = prompt.partial(system_message=system_message)
-        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
-        return prompt | llm.bind_tools(tools)
+    llm = ChatOpenAI(model="gpt-4o")
 
-    def agent_node(state, agent, name):
-        result = agent.invoke(state)
-        # We convert the agent output into a format that is suitable to append to the global state
-        if isinstance(result, ToolMessage):
-            pass
-        else:
-            result = AIMessage(**result.dict(exclude={"type", "name"}), name=name)
-        return {
-            "messages": [result],
-            # Since we have a strict workflow, we can
-            # track the sender so we know who to pass to next.
-            "sender": name,
-        }
+    tavily_tool = TavilySearchResults(
+        max_results=n//2,
+        search_depth="advanced",
+        include_answer=False,
+        include_raw_content=False,
+        include_images=False,
+        description="Search the web for information about books.",
+        name="search_book_info"
+    )
 
-    def router(state):
-        # This is the router
-        messages = state["messages"]
-        
-        last_message = messages[-1]
-        second_last_message = messages[-2]
+    books_retriever = create_retriever_tool(
+        store.as_retriever(search_type="similarity", search_kwargs={"k": 2 * n}),
+        "retrieve_books",
+        "Search and return books in the database.",
+    )
 
-        if "FINAL ANSWER" in last_message.content or last_message.content.lower() == second_last_message.content.lower():
-            # Any agent decided the work is done
-            return "end"
-        if last_message.tool_calls:
-            # The previous agent is invoking a tool
-            return "call_tool"
-        return "continue"
+    researcher_agent = create_react_agent(
+        llm,
+        tools=[tavily_tool],
+        state_modifier="You can only do research. You are working with a librarian colleague.",
+    )
 
     def formatter(state):
 
@@ -315,95 +256,69 @@ async def recommend_multi_agent(messages: List[BaseMessage], store: Any, n: int 
 
         recommended_items = [item.strip().lower() for item in response["parsed"].items]
 
-        return {"recommended_items": recommended_items}
+        messages.append(AIMessage(content=recommended_items, name="formatter"))
 
-    llm = ChatOpenAI(model="gpt-4o")
+        return {"messages": messages}
 
-    tavily_tool = TavilySearchResults(
-        max_results=n,
-        search_depth="advanced",
-        include_answer=False,
-        include_raw_content=False,
-        include_images=False,
-        description="Search the web for information about books.",
-    )
+    def researcher_node(state: MessagesState) -> MessagesState:
+        result = researcher_agent.invoke(state)
+        # wrap in a human message, as not all providers allow
+        # AI message at the last position of the input messages list
+        result["messages"][-1] = HumanMessage(
+            content=result["messages"][-1].content, name="researcher"
+        )
+        return {
+            "messages": result["messages"],
+        }
 
-    books_retriever = create_retriever_tool(
-        store.as_retriever(search_type="similarity", search_kwargs={"k": 2 * n}),
-        "retrieve_books",
-        "Search and return books in the database.",
-    )
-
-    research_agent = create_agent(
-        llm,
-        [tavily_tool],
-        system_message="You should provide accurate data for the librarian_agent to use.",
-    )
-    research_node = functools.partial(
-        agent_node, agent=research_agent, name="research_node"
-    )
-
-    librarian_agent = create_agent(
+    librarian_agent = create_react_agent(
         llm,
         [books_retriever],
-        system_message=f"You are a conversational recommender system specialized in books. Recommend {n} books that align with the user's interests.",
+        state_modifier=make_system_prompt(
+            "You can only recommend books from your catalog. You are working with a researcher colleague."
+        ),
     )
 
-    librarian_node = functools.partial(
-        agent_node, agent=librarian_agent, name="librarian_node"
-    )
+    def librarian_node(state: MessagesState) -> MessagesState:
+        result = librarian_agent.invoke(state)
+        result["messages"][-1] = HumanMessage(
+            content=result["messages"][-1].content, name="librarian"
+        )
+        return {
+            "messages": result["messages"],
+        }
 
-    tools = [tavily_tool, books_retriever]
-    tool_node = ToolNode(tools)
+    def router(state: MessagesState):
+        messages = state["messages"]
+        last_message = messages[-1]
+        if "FINAL ANSWER" in last_message.content:
+            return END
+        return "continue"
 
-    workflow = StateGraph(AgentState)
-
-    workflow.add_node("research_node", research_node)
-    workflow.add_node("librarian_node", librarian_node)
-    workflow.add_node("call_tool", tool_node)
+    workflow = StateGraph(MessagesState)
     workflow.add_node("formatter", formatter)
-
+    workflow.add_node("researcher", researcher_node)
+    workflow.add_node("librarian", librarian_node)
 
     workflow.add_conditional_edges(
-        "research_node",
+        "librarian",
         router,
-        {
-            "continue": "librarian_node",
-            "call_tool": "call_tool",
-            "end": "formatter",
-        },
+        {"continue": "researcher", END: "formatter"},
     )
 
-    workflow.add_conditional_edges(
-        "librarian_node",
-        router,
-        {
-            "continue": "research_node",
-            "call_tool": "call_tool",
-            "end": "formatter",
-        },
-    )
+    workflow.add_edge("researcher", "librarian")
 
-    workflow.add_conditional_edges(
-        "call_tool",
-        # Each agent node updates the 'sender' field
-        # the tool calling node does not, meaning
-        # this edge will route back to the original agent
-        # who invoked the tool
-        lambda x: x["sender"],
-        {
-            "research_node": "research_node",
-            "librarian_node": "librarian_node",
-        },
-    )
-
-    workflow.add_edge(START, "research_node")
     workflow.add_edge("formatter", END)
+    workflow.add_edge(START, "researcher")
     graph = workflow.compile()
 
     plot_graph(graph)
 
     state = {"messages": messages}
-    output = await graph.ainvoke(state)
+
+    try:
+        output = await graph.ainvoke(state)
+    except Exception as e:
+        output = {"messages": None}
 
     return output
