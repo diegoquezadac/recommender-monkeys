@@ -41,3 +41,13 @@ def novelty_at_k(recommended_items, item_interactions, k):
     
     # Return the average novelty score over the top k recommended items
     return novelty_score / k
+
+def precision_at_k(relevant_items, recommended_items, k):
+    
+    if k == 0:
+        return 0.0  # Avoid division by zero
+    
+    recommended_at_k = recommended_items[:k]
+    hits = set(recommended_at_k).intersection(relevant_items)
+    
+    return len(hits) / k
